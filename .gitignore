@@ -98,6 +98,9 @@ ENV/
 /site
 
 /docs
+draw.txt
+/local-runner/result.txt
+
 
 # mypy
 .mypy_cache/
