@@ -86,6 +86,25 @@ def print_vehicle(ve, name):
 # wrapper
 
 
+class Ownership:
+    ANY = 0
+    ALLY = 1
+    ENEMY = 2
+def repr_v_type(vt):
+    res='UNK'
+    if vt == VehicleType.ARRV:
+        res='ARRV'
+    if vt == VehicleType.FIGHTER:
+        res='FIGHTER'
+    if vt == VehicleType.HELICOPTER:
+        res='HELICOPTER'
+    if vt == VehicleType.IFV:
+        res='IFV'
+    if vt == VehicleType.TANK:
+        res='TANK'
+    return res
+    
+    
 def upd_vehicle(vehicle, vehicle_up):
     if vehicle.id != vehicle_up.id:
         raise ValueError('Vehicle ID mismatch [actual=%s, expected=%s].' % (
@@ -98,21 +117,6 @@ def upd_vehicle(vehicle, vehicle_up):
     vehicle.groups = vehicle_up.groups
 
 
-def stream_vehicles(vehicles, owner=None, vehicle_type=None):
-    if (owner != None) and (vehicle_type != None):
-        result = dict((k, v) for (k, v) in vehicles.items() if (
-            v.player_id == owner)and(v.type == vehicle_type))
-    elif (owner != None) and (vehicle_type == None):
-        result = dict((k, v)
-                      for (k, v) in vehicles.items() if v.player_id == owner)
-    elif (owner == None) and (vehicle_type != None):
-        result = dict((k, v)
-                      for (k, v) in vehicles.items() if v.type == vehicle_type)
-    else:
-        result = vehicles
-    return result
-
-
 class MyStrategy:
     terrain_map = []
     weather_map = []
@@ -120,6 +124,24 @@ class MyStrategy:
     vehicleById = {}
     updateTickByVehicleId = {}
 ##    delayedMoves          = []
+    
+    def get_vehicles(self, ownership=Ownership.ANY, vehicle_type=None):
+        vehicles = self.vehicleById.values()
+        if ownership == Ownership.ALLY:
+            vehicles = [v for v in vehicles if v.player_id == self.me.id]
+        if ownership == Ownership.ENEMY:
+            vehicles = [v for v in vehicles if v.player_id != self.me.id]
+        if vehicle_type != None:
+            vehicles = [v for v in vehicles if v.type == vehicle_type]
+            
+        return vehicles
+
+    def battle_report(self):
+        print("============ ALLY ======== ENEMY============")
+        for vehicle_type in range(5):
+          vehicles = self.get_vehicles(Ownership.ALLY, vehicle_type=vehicle_type)
+          enemy_vehicles = self.get_vehicles(Ownership.ENEMY, vehicle_type=vehicle_type)
+          print("{:10s} :  {:3d}         {:3d} ".format(repr_v_type(vehicle_type), len(vehicles), len(enemy_vehicles)))
 
     def initializeStrategy(self, world, game):
         self.terrain_map = world.terrain_by_cell_x_y
@@ -160,6 +182,7 @@ class MyStrategy:
             self.initializeTick(me, world, game, move)
 
         if LOG:
+            self.battle_report()
             # world map
             #print_map(self.terrain_map, "terrain_map")
             #print_vehicle(self.vehicleById, 'VEHICLES by Id')
