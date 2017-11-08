@@ -137,12 +137,20 @@ class MyStrategy:
         return vehicles
 
     def battle_report(self):
-        print("============ ALLY ======== ENEMY============")
+        print("============ ALLY ====== ENEMY ============")
         for vehicle_type in range(5):
           vehicles = self.get_vehicles(Ownership.ALLY, vehicle_type=vehicle_type)
           enemy_vehicles = self.get_vehicles(Ownership.ENEMY, vehicle_type=vehicle_type)
           print("{:10s} :  {:3d}         {:3d} ".format(repr_v_type(vehicle_type), len(vehicles), len(enemy_vehicles)))
 
+    def update_state(self, me, world, game, move):
+        if world.tick_index == 0:
+            self.initializeStrategy(world, game)
+            self.initializeTick(me, world, game, move)
+        else:
+            self.initializeTick(me, world, game, move)
+
+        
     def initializeStrategy(self, world, game):
         self.terrain_map = world.terrain_by_cell_x_y
         self.weather_map = world.weather_by_cell_x_y
@@ -152,8 +160,8 @@ class MyStrategy:
         self.world = world
         self.game = game
 
-        print('new_v:' + str(len(world.new_vehicles)))
-        print('me_v:' + str(len(self.vehicleById)))
+        print('   new_v:' + str(len(world.new_vehicles)))
+        print(' total_v:' + str(len(self.vehicleById)))
         print('up_new_v:' + str(len(world.vehicle_updates)))
         for vehicle in world.new_vehicles:
             self.vehicleById.update({vehicle.id: vehicle})
@@ -175,24 +183,12 @@ class MyStrategy:
             f = open('..\\draw.txt', 'w')
         print('--------{}------------'.format(world.tick_index))
         # === INITIALIZATION  ===========
-        if world.tick_index == 0:
-            self.initializeStrategy(world, game)
-            self.initializeTick(me, world, game, move)
-        else:
-            self.initializeTick(me, world, game, move)
+        self.update_state(me, world, game, move)
+
 
         if LOG:
             self.battle_report()
-            # world map
-            #print_map(self.terrain_map, "terrain_map")
-            #print_vehicle(self.vehicleById, 'VEHICLES by Id')
-            # my tanks
-            #my_tanks = stream_vehicles(
-            #    self.vehicleById, me.id, VehicleType.TANK)
-            #print_vehicle(my_tanks, 'my_tanks by Id')
-            #any_tanks = stream_vehicles(
-            #    self.vehicleById, vehicle_type=VehicleType.TANK)
-            #print_vehicle(any_tanks, 'any_tanks by Id')
+
             f.write('setColor 50 50 50')
             f.write('\n')
 
