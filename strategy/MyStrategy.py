@@ -198,10 +198,12 @@ class MyStrategy:
 
         return True
 
-    def move(self, me: Player, world: World, game: Game, move: Move):
+    def move(self, me,  world, game, move):
+        print('--------{}------------'.format(world.tick_index))
+
         if LOG:
             f = open('..\\draw.txt', 'w')
-        print('--------{}------------'.format(world.tick_index))
+        
         if LOG:
             self.battle_report()
 
@@ -215,7 +217,16 @@ class MyStrategy:
                et_x = np.mean([v.x for v in vs])
                et_y = np.mean([v.y for v in vs])
                print('enemy tank center = {}'.format((et_x, et_y)))
-            
+            vs = self.get_vehicles(Ownership.ALLY, VehicleType.HELICOPTER)
+            if vs:
+               t_x = np.mean([v.x for v in vs])
+               t_y = np.mean([v.y for v in vs])
+               print('my HELICOPTER center = {}'.format((t_x, t_y)))
+            vs = self.get_vehicles(Ownership.ALLY, VehicleType.FIGHTER)
+            if vs:
+               t_x = np.mean([v.x for v in vs])
+               t_y = np.mean([v.y for v in vs])
+               print('my FIGHTER center = {}'.format((t_x, t_y)))
         # === INITIALIZATION  ===========
         self.update_state(me, world, game, move)
 
@@ -225,7 +236,7 @@ class MyStrategy:
             return
         self._move()
         self.execute_delayed_move()
-
+        #=====================================
         if LOG:
             f.write('setColor 50 50 50')
             f.write('\n')
@@ -247,23 +258,71 @@ class MyStrategy:
             f.close()
 
     def _move(self):
+        
+        print('_move')
+
+        # tanks are covered by fighters
+
+        # select tanks - goto enemy tanks
+        # select fighters - go to my tanks
+        # when dist between center tanks and fighters < 20
+        # select tanks
+        # add to select fighters
+        # set max speed 0.4
+        # goto enemy tanks
+        
+        # --------- TANK -----------
+        vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
+        if vs:
+           at_x = np.mean([v.x for v in vs])
+           at_y = np.mean([v.y for v in vs])
+           print('my tank center = {}'.format((at_x, at_y)))
+        vs = self.get_vehicles(Ownership.ENEMY, VehicleType.TANK)
+        if vs:
+           et_x = np.mean([v.x for v in vs])
+           et_y = np.mean([v.y for v in vs])
+           print('enemy tank center = {}'.format((et_x, et_y)))
+        target_x = et_x-at_x
+        target_y = et_y-at_y
+        print('target TANK = '+str((target_x,target_y)))
         self.delayed_moves.append(dict(
             action=ActionType.CLEAR_AND_SELECT,
             right=self.world.width,
             bottom=self.world.height,
-
+            vehicle_type = VehicleType.TANK
         ))
-
         self.delayed_moves.append(dict(
             action=ActionType.MOVE,
-            max_speed=0.4,
-            x=self.world.width / 2,
-            y=self.world.height / 2,
+            #max_speed=0.4,
+            x=target_x,
+            y=target_y,
+        ))
+        # --------- FIGHTER -----------
+        vs = self.get_vehicles(Ownership.ALLY, VehicleType.FIGHTER)
+        if vs:
+           af_x = np.mean([v.x for v in vs])
+           af_y = np.mean([v.y for v in vs])
+           print('my FIGHTER center = {}'.format((at_x, at_y)))
+        target_x = at_x-af_x
+        target_y = at_y-af_y
+        self.delayed_moves.append(dict(
+            action=ActionType.CLEAR_AND_SELECT,
+            right=self.world.width,
+            bottom=self.world.height,
+            vehicle_type = VehicleType.FIGHTER
+        ))
+        self.delayed_moves.append(dict(
+            action=ActionType.MOVE,
+            #max_speed=0.4,
+            x=target_x,
+            y=target_y,
         ))
 
 
-print('Hello codewars v 0.0.3 ( add deque )')
+        
+print('Hello codewars v 0.0.4 ( first move )')
 # v 0.0.1 ( basics )
 # v 0.0.2 ( get any type vehicles )
 # v 0.0.3 ( add deque )
+#v 0.0.4 ( first move )
 #https://github.com/xmanatee/raic.2017/blob/master/MyStrategy.py
