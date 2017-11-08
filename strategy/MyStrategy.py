@@ -8,7 +8,7 @@ from model.VehicleType import VehicleType
 
 from collections import deque
 
-LOG = True
+LOG = False
 
 TILE_SIZE = 32
 
@@ -92,21 +92,23 @@ class Ownership:
     ANY = 0
     ALLY = 1
     ENEMY = 2
+
+
 def repr_v_type(vt):
-    res='UNK'
+    res = 'UNK'
     if vt == VehicleType.ARRV:
-        res='ARRV'
+        res = 'ARRV'
     if vt == VehicleType.FIGHTER:
-        res='FIGHTER'
+        res = 'FIGHTER'
     if vt == VehicleType.HELICOPTER:
-        res='HELICOPTER'
+        res = 'HELICOPTER'
     if vt == VehicleType.IFV:
-        res='IFV'
+        res = 'IFV'
     if vt == VehicleType.TANK:
-        res='TANK'
+        res = 'TANK'
     return res
-    
-    
+
+
 def upd_vehicle(vehicle, vehicle_up):
     if vehicle.id != vehicle_up.id:
         raise ValueError('Vehicle ID mismatch [actual=%s, expected=%s].' % (
@@ -126,7 +128,7 @@ class MyStrategy:
     vehicleById = {}
     updateTickByVehicleId = {}
     delayed_moves = deque()
-    
+
     def get_vehicles(self, ownership=Ownership.ANY, vehicle_type=None):
         vehicles = self.vehicleById.values()
         if ownership == Ownership.ALLY:
@@ -135,15 +137,18 @@ class MyStrategy:
             vehicles = [v for v in vehicles if v.player_id != self.me.id]
         if vehicle_type != None:
             vehicles = [v for v in vehicles if v.type == vehicle_type]
-            
+
         return vehicles
 
     def battle_report(self):
-        print("============ ALLY ====== ENEMY ============")
+        print('============ ALLY ====== ENEMY ============')
         for vehicle_type in range(5):
-          vehicles = self.get_vehicles(Ownership.ALLY, vehicle_type=vehicle_type)
-          enemy_vehicles = self.get_vehicles(Ownership.ENEMY, vehicle_type=vehicle_type)
-          print("{:10s} :  {:3d}         {:3d} ".format(repr_v_type(vehicle_type), len(vehicles), len(enemy_vehicles)))
+            vehicles = self.get_vehicles(
+                Ownership.ALLY, vehicle_type=vehicle_type)
+            enemy_vehicles = self.get_vehicles(
+                Ownership.ENEMY, vehicle_type=vehicle_type)
+            print('{:10s} :  {:3d}         {:3d} '.format(
+                repr_v_type(vehicle_type), len(vehicles), len(enemy_vehicles)))
 
     def update_state(self, me, world, game, move):
         if world.tick_index == 0:
@@ -152,7 +157,6 @@ class MyStrategy:
         else:
             self.initializeTick(me, world, game, move)
 
-        
     def initializeStrategy(self, world, game):
         self.terrain_map = world.terrain_by_cell_x_y
         self.weather_map = world.weather_by_cell_x_y
@@ -179,8 +183,9 @@ class MyStrategy:
                 updated_vehicle = self.vehicleById.get(vehicleId)
                 upd_vehicle(updated_vehicle, vehicleUpdate)
                 self.vehicleById.update({vehicleId: updated_vehicle})
-                self.updateTickByVehicleId.update({vehicleId: world.tick_index})
-                
+                self.updateTickByVehicleId.update(
+                    {vehicleId: world.tick_index})
+
     def execute_delayed_move(self):
         if not self.delayed_moves:
             return False
@@ -191,7 +196,7 @@ class MyStrategy:
             setattr(self.stored_move, key, move_dict[key])
 
         return True
-    
+
     def move(self, me: Player, world: World, game: Game, move: Move):
         if LOG:
             f = open('..\\draw.txt', 'w')
@@ -207,8 +212,6 @@ class MyStrategy:
             return
         self._move()
         self.execute_delayed_move()
-
-
 
         if LOG:
             f.write('setColor 50 50 50')
@@ -231,21 +234,23 @@ class MyStrategy:
             f.close()
 
     def _move(self):
-         self.delayed_moves.append(dict(
-                action=ActionType.CLEAR_AND_SELECT,
-                right=self.world.width,
-                bottom=self.world.height,
-                
-            ))
+        self.delayed_moves.append(dict(
+            action=ActionType.CLEAR_AND_SELECT,
+            right=self.world.width,
+            bottom=self.world.height,
 
-         self.delayed_moves.append(dict(
-                                action=ActionType.MOVE,
-                                x=self.world.width/2,
-                                y=self.world.height/2,
-                            ))
-         
+        ))
 
-print('Hello codewars v 0.0.3 ( add dequee )')
+        self.delayed_moves.append(dict(
+            action=ActionType.MOVE,
+            max_speed=0.4,
+            x=self.world.width / 2,
+            y=self.world.height / 2,
+        ))
+
+
+print('Hello codewars v 0.0.3 ( add deque )')
 # v 0.0.1 ( basics )
-#v 0.0.2 ( get any type vehicles )
-#v 0.0.3 ( add dequee )
+# v 0.0.2 ( get any type vehicles )
+# v 0.0.3 ( add deque )
+#https://github.com/xmanatee/raic.2017/blob/master/MyStrategy.py

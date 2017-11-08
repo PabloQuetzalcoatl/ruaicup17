@@ -83,8 +83,9 @@ public final class LocalTestRendererListener {
 
         }
 
-        graphics.setColor(Color.BLACK);
+        graphics.setColor(Color.RED);
         drawRect(100.0D, 150.0D, 900.0D, 950.0D);
+        fillCircle(512.0D, 512.0D, 200.0D);
 
         if (vehicles == null) {
             vehicles = world.getNewVehicles();
@@ -161,6 +162,7 @@ public final class LocalTestRendererListener {
 
         graphics.setColor(Color.BLACK);
         drawCircle(200.0D, 200.0D, 500.0D);
+        fillCircle(512.0D, 512.0D, 200.0D);
     }
 
     private void updateFields(Graphics graphics, World world, Game game, int canvasWidth, int canvasHeight,
