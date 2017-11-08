@@ -6,6 +6,8 @@ from model.World import World
 
 from model.VehicleType import VehicleType
 
+from collections import deque
+
 LOG = True
 
 TILE_SIZE = 32
@@ -120,10 +122,10 @@ def upd_vehicle(vehicle, vehicle_up):
 class MyStrategy:
     terrain_map = []
     weather_map = []
-
+    stored_move = None
     vehicleById = {}
     updateTickByVehicleId = {}
-##    delayedMoves          = []
+    delayed_moves = deque()
     
     def get_vehicles(self, ownership=Ownership.ANY, vehicle_type=None):
         vehicles = self.vehicleById.values()
@@ -159,6 +161,7 @@ class MyStrategy:
         self.me = me
         self.world = world
         self.game = game
+        self.stored_move = move
 
         print('   new_v:' + str(len(world.new_vehicles)))
         print(' total_v:' + str(len(self.vehicleById)))
@@ -177,18 +180,37 @@ class MyStrategy:
                 upd_vehicle(updated_vehicle, vehicleUpdate)
                 self.vehicleById.update({vehicleId: updated_vehicle})
                 self.updateTickByVehicleId.update({vehicleId: world.tick_index})
+                
+    def execute_delayed_move(self):
+        if not self.delayed_moves:
+            return False
+        move_dict = self.delayed_moves.popleft()
 
+        print(move_dict)
+        for key in move_dict:
+            setattr(self.stored_move, key, move_dict[key])
+
+        return True
+    
     def move(self, me: Player, world: World, game: Game, move: Move):
         if LOG:
             f = open('..\\draw.txt', 'w')
         print('--------{}------------'.format(world.tick_index))
+        if LOG:
+            self.battle_report()
         # === INITIALIZATION  ===========
         self.update_state(me, world, game, move)
 
+        if self.me.remaining_action_cooldown_ticks > 0:
+            return
+        if self.execute_delayed_move():
+            return
+        self._move()
+        self.execute_delayed_move()
+
+
 
         if LOG:
-            self.battle_report()
-
             f.write('setColor 50 50 50')
             f.write('\n')
 
@@ -208,7 +230,22 @@ class MyStrategy:
                     f.write('\n')
             f.close()
 
+    def _move(self):
+         self.delayed_moves.append(dict(
+                action=ActionType.CLEAR_AND_SELECT,
+                right=self.world.width,
+                bottom=self.world.height,
+                
+            ))
 
-print('Hello codewars v 0.0.2 ( get any type vehicles )')
+         self.delayed_moves.append(dict(
+                                action=ActionType.MOVE,
+                                x=self.world.width/2,
+                                y=self.world.height/2,
+                            ))
+         
+
+print('Hello codewars v 0.0.3 ( add dequee )')
 # v 0.0.1 ( basics )
 #v 0.0.2 ( get any type vehicles )
+#v 0.0.3 ( add dequee )
