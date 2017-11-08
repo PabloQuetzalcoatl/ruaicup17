@@ -7,8 +7,9 @@ from model.World import World
 from model.VehicleType import VehicleType
 
 from collections import deque
+import numpy as np
 
-LOG = False
+LOG = True
 
 TILE_SIZE = 32
 
@@ -203,6 +204,18 @@ class MyStrategy:
         print('--------{}------------'.format(world.tick_index))
         if LOG:
             self.battle_report()
+
+            vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
+            if vs:
+               t_x = np.mean([v.x for v in vs])
+               t_y = np.mean([v.y for v in vs])
+               print('my tank center = {}'.format((t_x, t_y)))
+            vs = self.get_vehicles(Ownership.ENEMY, VehicleType.TANK)
+            if vs:
+               et_x = np.mean([v.x for v in vs])
+               et_y = np.mean([v.y for v in vs])
+               print('enemy tank center = {}'.format((et_x, et_y)))
+            
         # === INITIALIZATION  ===========
         self.update_state(me, world, game, move)
 
