@@ -8,6 +8,7 @@ from model.VehicleType import VehicleType
 
 from collections import deque
 import numpy as np
+from math import *
 
 LOG = True
 
@@ -15,6 +16,12 @@ TILE_SIZE = 32
 
 UNIT_RADIUS = 2
 SPACE = 1
+
+
+POSITIONS = [(34.5, 34.5),  (93.5, 34.5),  (152.5, 34.5),
+             (34.5, 93.5),  (93.5, 93.5),  (152.5, 93.5),
+             (34.5, 152.5), (93.5, 152.5), (152.5, 152.5)]
+
 
 class tile2d:
     def __init__(self, X, Y):
@@ -53,6 +60,7 @@ class point2d:
 
     def get_distance_to_point(self, point):
         return self.get_distance_to(point.x, point.y)
+    
 
 
 def convert_tile2phys(inpt):
@@ -71,6 +79,10 @@ def convert_phys2tile(inpt):
 def rad2deg(a):
     return a * 180 / pi
 
+
+
+def key_sort_by_dist(tupl):
+        return tupl[2]
 
 def print_map(w, name):
     print('  **********  ' + name + '  ************************  ')
@@ -243,6 +255,8 @@ class MyStrategy:
     def _move(self):
         
         print('_move')
+        self.info()
+        return
         #self.fighter_covered_tank()
         if self.world.tick_index == 0:
             # formation
@@ -253,8 +267,54 @@ class MyStrategy:
         else:
             #ATTACk
             self.attack()
-##        if self.world.tick_index == 0:
-##            self.assembly()
+
+    def info(self):
+        START_POINTS = [point2d(34.5, 34.5),  point2d(93.5, 34.5),  point2d(152.5, 34.5)]
+        vt_list_1 = [0, 3, 4]
+        vt_list_2 = list(vt_list_1)
+        from_to_dist_list=[]
+        # te kto i tak na svoem meste
+        for vt in vt_list_1:
+            vs = self.get_vehicles(Ownership.ALLY, vt)
+            if vs:
+               x = np.mean([v.x for v in vs])
+               y = np.mean([v.y for v in vs])
+            vehicle_p = point2d(x,y)
+
+            if vehicle_p in START_POINTS:
+                min_p = vehicle_p
+                min_dist = 0
+                from_to_dist_list.append( (vehicle_p, min_p, min_dist, vt) )
+                START_POINTS.remove(min_p)
+                vt_list_2.remove(vt)
+        # do kogo blije
+        for vt in vt_list_2:
+            vs = self.get_vehicles(Ownership.ALLY, vt)
+            if vs:
+               x = np.mean([v.x for v in vs])
+               y = np.mean([v.y for v in vs])
+            vehicle_p = point2d(x,y)                
+            min_dist = 1500
+            min_p = START_POINTS[0]
+            for p in START_POINTS:
+                dist_p_to_vehicle = p.get_distance_to_point(vehicle_p)
+                if dist_p_to_vehicle < min_dist:
+                    min_dist = dist_p_to_vehicle
+                    min_p = p
+            from_to_dist_list.append( (vehicle_p, min_p, min_dist, vt) )
+            START_POINTS.remove(min_p)    
+            print('my {} center = {}'.format(repr_v_type(vt),(x, y)))
+            print('nearest point = {}'.format(min_p))
+
+        for x in from_to_dist_list:
+            print('from {} to {} dist {} type {}'.format(x[0], x[1], x[2], repr_v_type(x[3])))
+        move_list = sorted(from_to_dist_list, key=key_sort_by_dist)
+        print('sorted____')
+        for x in move_list:
+            print('from {} to {} dist {} type {}'.format(x[0], x[1], x[2], repr_v_type(x[3])))
+        #now move it
+
+            
     def attack(self):
         # --------- TANK -----------
         vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
@@ -289,18 +349,23 @@ class MyStrategy:
         if vs:
            at_a_x = np.mean([v.x for v in vs])
            at_a_y = np.mean([v.y for v in vs])
-           
+           a_a = (at_a_x,at_a_y)
         vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
         total_vs +=vs
         if vs:
            at_t_x = np.mean([v.x for v in vs])
            at_t_y = np.mean([v.y for v in vs])
-           
+           a_t = (at_t_x,at_t_y)
         vs = self.get_vehicles(Ownership.ALLY, VehicleType.IFV)
         total_vs +=vs
         if vs:
            at_i_x = np.mean([v.x for v in vs])
            at_i_y = np.mean([v.y for v in vs])
+           a_i = (at_i_x,at_i_y)
+
+        p0=()
+        
+
            
         if total_vs:
            at_x = np.mean([v.x for v in total_vs])
@@ -418,70 +483,14 @@ class MyStrategy:
                ))
                sign=-1*sign
         
-    def fighter_covered_tank_example(self):
-        # tanks are covered by fighters
 
-        # select tanks - goto enemy tanks
-        # select fighters - go to my tanks
-        # when dist between center tanks and fighters < 20
-        # select tanks
-        # add to select fighters
-        # set max speed 0.4
-        # goto enemy tanks
         
-        # --------- TANK -----------
-        vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
-        if vs:
-           at_x = np.mean([v.x for v in vs])
-           at_y = np.mean([v.y for v in vs])
-           print('my tank center = {}'.format((at_x, at_y)))
-        vs = self.get_vehicles(Ownership.ENEMY, VehicleType.TANK)
-        if vs:
-           et_x = np.mean([v.x for v in vs])
-           et_y = np.mean([v.y for v in vs])
-           print('enemy tank center = {}'.format((et_x, et_y)))
-        target_x = et_x-at_x
-        target_y = et_y-at_y
-        print('target TANK = '+str((target_x,target_y)))
-        self.delayed_moves.append(dict(
-            action=ActionType.CLEAR_AND_SELECT,
-            right=self.world.width,
-            bottom=self.world.height,
-            vehicle_type = VehicleType.TANK
-        ))
-        self.delayed_moves.append(dict(
-            action=ActionType.MOVE,
-            #max_speed=0.4,
-            x=target_x,
-            y=target_y,
-        ))
-        # --------- FIGHTER -----------
-        vs = self.get_vehicles(Ownership.ALLY, VehicleType.FIGHTER)
-        if vs:
-           af_x = np.mean([v.x for v in vs])
-           af_y = np.mean([v.y for v in vs])
-           print('my FIGHTER center = {}'.format((at_x, at_y)))
-        target_x = at_x-af_x
-        target_y = at_y-af_y
-        self.delayed_moves.append(dict(
-            action=ActionType.CLEAR_AND_SELECT,
-            right=self.world.width,
-            bottom=self.world.height,
-            vehicle_type = VehicleType.FIGHTER
-        ))
-        self.delayed_moves.append(dict(
-            action=ActionType.MOVE,
-            #max_speed=0.4,
-            x=target_x,
-            y=target_y,
-        ))
-        
-print('Hello codewars v 0.0.4 ( first move )')
-r=[x for x in range(10)]
-#r.reverse()
-print(r)
+print('Hello codewars v 0.0.5 ( start position maneures )')
+
+
 # v 0.0.1 ( basics )
 # v 0.0.2 ( get any type vehicles )
 # v 0.0.3 ( add deque )
-#v 0.0.4 ( first move )
+# v 0.0.4 ( first move )
+# v 0.0.5 ( start position maneures )
 #https://github.com/xmanatee/raic.2017/blob/master/MyStrategy.py
