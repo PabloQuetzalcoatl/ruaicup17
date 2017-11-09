@@ -13,6 +13,8 @@ LOG = True
 
 TILE_SIZE = 32
 
+UNIT_RADIUS = 2
+SPACE = 1
 
 class tile2d:
     def __init__(self, X, Y):
@@ -207,26 +209,7 @@ class MyStrategy:
         if LOG:
             self.battle_report()
 
-            vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
-            if vs:
-               t_x = np.mean([v.x for v in vs])
-               t_y = np.mean([v.y for v in vs])
-               print('my tank center = {}'.format((t_x, t_y)))
-            vs = self.get_vehicles(Ownership.ENEMY, VehicleType.TANK)
-            if vs:
-               et_x = np.mean([v.x for v in vs])
-               et_y = np.mean([v.y for v in vs])
-               print('enemy tank center = {}'.format((et_x, et_y)))
-            vs = self.get_vehicles(Ownership.ALLY, VehicleType.HELICOPTER)
-            if vs:
-               t_x = np.mean([v.x for v in vs])
-               t_y = np.mean([v.y for v in vs])
-               print('my HELICOPTER center = {}'.format((t_x, t_y)))
-            vs = self.get_vehicles(Ownership.ALLY, VehicleType.FIGHTER)
-            if vs:
-               t_x = np.mean([v.x for v in vs])
-               t_y = np.mean([v.y for v in vs])
-               print('my FIGHTER center = {}'.format((t_x, t_y)))
+
         # === INITIALIZATION  ===========
         self.update_state(me, world, game, move)
 
@@ -260,7 +243,182 @@ class MyStrategy:
     def _move(self):
         
         print('_move')
+        #self.fighter_covered_tank()
+        if self.world.tick_index == 0:
+            # formation
+            self.cover(VehicleType.TANK, VehicleType.FIGHTER)
+            self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
+            for vt in [0,3,4]:
+              self.compact_square_formation(vt)
+        else:
+            #ATTACk
+            self.attack()
+##        if self.world.tick_index == 0:
+##            self.assembly()
+    def attack(self):
+        # --------- TANK -----------
+        vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
+        if vs:
+           at_x = np.mean([v.x for v in vs])
+           at_y = np.mean([v.y for v in vs])
+           print('my tank center = {}'.format((at_x, at_y)))
+        vs = self.get_vehicles(Ownership.ENEMY, VehicleType.TANK)
+        if vs:
+           et_x = np.mean([v.x for v in vs])
+           et_y = np.mean([v.y for v in vs])
+           print('enemy tank center = {}'.format((et_x, et_y)))
+        target_x = et_x-at_x
+        target_y = et_y-at_y
+        print('target TANK = '+str((target_x,target_y)))
+        self.delayed_moves.append(dict(
+            action=ActionType.CLEAR_AND_SELECT,
+            right=self.world.width,
+            bottom=self.world.height,
+            
+        ))
+        self.delayed_moves.append(dict(
+            action=ActionType.MOVE,
+            max_speed=0.4*0.6,
+            x=target_x,
+            y=target_y,
+        ))
+    def assembly(self):
+        total_vs = []
+        vs = self.get_vehicles(Ownership.ALLY, VehicleType.ARRV)
+        total_vs +=vs
+        if vs:
+           at_a_x = np.mean([v.x for v in vs])
+           at_a_y = np.mean([v.y for v in vs])
+           
+        vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
+        total_vs +=vs
+        if vs:
+           at_t_x = np.mean([v.x for v in vs])
+           at_t_y = np.mean([v.y for v in vs])
+           
+        vs = self.get_vehicles(Ownership.ALLY, VehicleType.IFV)
+        total_vs +=vs
+        if vs:
+           at_i_x = np.mean([v.x for v in vs])
+           at_i_y = np.mean([v.y for v in vs])
+           
+        if total_vs:
+           at_x = np.mean([v.x for v in total_vs])
+           at_y = np.mean([v.y for v in total_vs])
+           
+        #VehicleType.ARRV
+        target_x = at_x-at_a_x
+        target_y = at_y-at_a_y
+        self.delayed_moves.append(dict(
+            action=ActionType.CLEAR_AND_SELECT,
+            right=self.world.width,
+            bottom=self.world.height,
+            vehicle_type = VehicleType.ARRV
+        ))
+        # type2 goto type1
+        self.delayed_moves.append(dict(
+            action=ActionType.MOVE,
+            #max_speed=0.4,
+            x=target_x,
+            y=target_y,
+        ))
+        #VehicleType.TANK
+        target_x = at_x-at_t_x
+        target_y = at_y-at_t_y
+        self.delayed_moves.append(dict(
+            action=ActionType.CLEAR_AND_SELECT,
+            right=self.world.width,
+            bottom=self.world.height,
+            vehicle_type = VehicleType.TANK
+        ))
+        # type2 goto type1
+        self.delayed_moves.append(dict(
+            action=ActionType.MOVE,
+            #max_speed=0.4,
+            x=target_x,
+            y=target_y,
+        ))
+        #VehicleType.IFV
+        target_x = at_x-at_i_x
+        target_y = at_y-at_i_y
+        self.delayed_moves.append(dict(
+            action=ActionType.CLEAR_AND_SELECT,
+            right=self.world.width,
+            bottom=self.world.height,
+            vehicle_type = VehicleType.IFV
+        ))
+        # type2 goto type1
+        self.delayed_moves.append(dict(
+            action=ActionType.MOVE,
+            #max_speed=0.4,
+            x=target_x,
+            y=target_y,
+        ))        
+        pass
+    def cover(self,v_type1, v_type2):
+        # --------- v_type1 -----------
+        vs = self.get_vehicles(Ownership.ALLY, v_type1)
+        if vs:
+           at1_x = np.mean([v.x for v in vs])
+           at1_y = np.mean([v.y for v in vs])
+        # --------- v_type2 -----------
+        vs = self.get_vehicles(Ownership.ALLY, v_type2)
+        if vs:
+           at2_x = np.mean([v.x for v in vs])
+           at2_y = np.mean([v.y for v in vs])
+        target_x = at1_x-at2_x
+        target_y = at1_y-at2_y
+        #select 2 
+        self.delayed_moves.append(dict(
+            action=ActionType.CLEAR_AND_SELECT,
+            right=self.world.width,
+            bottom=self.world.height,
+            vehicle_type = v_type2
+        ))
+        # type2 goto type1
+        self.delayed_moves.append(dict(
+            action=ActionType.MOVE,
+            #max_speed=0.4,
+            x=target_x,
+            y=target_y,
+        ))
+           
+    def compact_square_formation(self,vehicle_type):
+        # --------- FIGHTER -----------
+        vs = self.get_vehicles(Ownership.ALLY, vehicle_type)
+        if vs:
+           a_x = np.mean([v.x for v in vs])
+           a_y = np.mean([v.y for v in vs])
+           min_a_x = min([v.x for v in vs])
+           min_a_y = min([v.y for v in vs])
+           max_a_x = max([v.x for v in vs])
+           max_a_y = max([v.y for v in vs])
 
+           # cycle col selection
+           sign=1
+           for i in range(10):
+               left   = max_a_x-UNIT_RADIUS - i*(SPACE+2*UNIT_RADIUS)
+               top    = min_a_y-UNIT_RADIUS 
+               right  = max_a_x+UNIT_RADIUS - i*(SPACE+2*UNIT_RADIUS)
+               bottom = max_a_y+UNIT_RADIUS
+
+               self.delayed_moves.append(dict(
+                action=ActionType.CLEAR_AND_SELECT,
+                left = left,
+                top = top,
+                right=right,
+                bottom=bottom,
+                #vehicle_type = vehicle_type
+               ))
+               self.delayed_moves.append(dict(
+                action=ActionType.MOVE,
+                #max_speed=0.4,
+                x=1*i+1,
+                y=sign*1.5,
+               ))
+               sign=-1*sign
+        
+    def fighter_covered_tank_example(self):
         # tanks are covered by fighters
 
         # select tanks - goto enemy tanks
@@ -317,10 +475,11 @@ class MyStrategy:
             x=target_x,
             y=target_y,
         ))
-
-
         
 print('Hello codewars v 0.0.4 ( first move )')
+r=[x for x in range(10)]
+#r.reverse()
+print(r)
 # v 0.0.1 ( basics )
 # v 0.0.2 ( get any type vehicles )
 # v 0.0.3 ( add deque )
