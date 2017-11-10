@@ -277,8 +277,8 @@ class MyStrategy:
         
         print('_move')
 ##        #TEST
-        if self.world.tick_index == 10:
-            self.spread_square_formation(point2d(152.5, 34.5))
+        if self.world.tick_index == 20:
+            self.start_order_begin()
 ##            move_dict = self.move_selection_rect(self.start_formation_selection(point2d(152.5, 34.5)))
 ##            self.delayed_moves.append(move_dict)
 ##            
@@ -337,19 +337,60 @@ class MyStrategy:
           move_dict['max_speed'] = max_speed
         return move_dict    
         #self.delayed_moves.append(move_dict)
+    
+    def start_order_begin(self):
+        # ------------1 row -------------
+        START_POINTS_1ROW = [point2d(34.5, 34.5),  point2d(93.5, 34.5),  point2d(152.5, 34.5)]
+        START_POINTS_1ROW.reverse()
+        for i,p in enumerate(START_POINTS_1ROW):
+            add_step = abs(i-2)*4
+            print('for {} point add {} step'.format(i,add_step))
+            self.spread_square_formation(p, add_step)
+        # ------------ 2 row -------------
+        START_POINTS_2ROW = [point2d(34.5, 93.5),  point2d(93.5, 93.5),  point2d(152.5, 93.5)]
+        START_POINTS_2ROW.reverse()
+        for i,p in enumerate(START_POINTS_2ROW):
+            add_step = abs(i-2)*4 +1
+            print('for {} point add {} step'.format(i,add_step))
+            self.spread_square_formation(p, add_step)
+        # ------------ 3 row -------------            
+        START_POINTS_3ROW = [point2d(34.5, 152.5), point2d(93.5, 152.5), point2d(152.5, 152.5)]
+        START_POINTS_3ROW.reverse()
+        for i,p in enumerate(START_POINTS_3ROW):
+            add_step = abs(i-2)*4 +2
+            print('for {} point add {} step'.format(i,add_step))
+            self.spread_square_formation(p, add_step)
 
-    def spread_square_formation(self, center):
-        right_x = center.x+25
+        # 1 row down
+        l = 0
+        t = 0
+        r = (4*UNIT_RADIUS+4*SPACE)*30
+        b = 59
+        move_dict = self.move_selection_rect(ltrb_dict(l,t,r,b))
+        self.delayed_moves.append(move_dict)
+        
+        move_dict = self.move_move(0, 45+14, None)
+        self.delayed_moves.append(move_dict)
+            
+    def spread_square_formation(self, center, add_step_count):
+        r_x = center.x+22.5
         top_y   = center.y - 25 - UNIT_RADIUS
         bottom_y= center.y + 25 + UNIT_RADIUS 
         for i in range(5):
-           #sel col
-           l = right_x - UNIT_RADIUS - SPACE-2*UNIT_RADIUS  # - i*(SPACE+2*UNIT_RADIUS)
-           t = top_y
-           r = right_x+UNIT_RADIUS# - i*(SPACE+2*UNIT_RADIUS)
-           b = bottom_y
-           move_dict = self.move_selection_rect(ltrb_dict(l,t,r,b))
-           self.delayed_moves.append(move_dict)
+            #sel col
+            l = r_x - (UNIT_RADIUS+SPACE+2*UNIT_RADIUS)- i*(2*SPACE+4*UNIT_RADIUS)
+            t = top_y
+            r = r_x + (UNIT_RADIUS)- i*(2*SPACE+4*UNIT_RADIUS)
+            b = bottom_y
+            move_dict = self.move_selection_rect(ltrb_dict(l,t,r,b))
+            self.delayed_moves.append(move_dict)
+
+            one_step = 4*UNIT_RADIUS+SPACE
+            multi=abs(i-4)
+            new_x=multi*one_step+add_step_count*one_step
+            new_y=0
+            move_dict = self.move_move(new_x, new_y, None)
+            self.delayed_moves.append(move_dict)
 ##       # cycle col selection
 ##       sign=1
 ##       for i in range(10):
