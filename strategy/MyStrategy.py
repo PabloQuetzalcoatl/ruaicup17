@@ -10,7 +10,7 @@ from collections import deque, namedtuple
 import numpy as np
 from math import *
 
-LOG = True
+LOG = False
 
 TILE_SIZE = 32
 
@@ -277,7 +277,8 @@ class MyStrategy:
         
         print('_move')
 ##        #TEST
-##        if self.world.tick_index == 0:
+        if self.world.tick_index == 10:
+            self.spread_square_formation(point2d(152.5, 34.5))
 ##            move_dict = self.move_selection_rect(self.start_formation_selection(point2d(152.5, 34.5)))
 ##            self.delayed_moves.append(move_dict)
 ##            
@@ -289,7 +290,7 @@ class MyStrategy:
 ##            move_y = 100#to_p.y - from_p.y
 ##            move_dict = self.move_move(move_x, move_y, None)
 ##            self.tick_moves[310] = move_dict
-##        return
+        return
 
     
         
@@ -298,8 +299,8 @@ class MyStrategy:
             self.cover(VehicleType.TANK, VehicleType.FIGHTER)
             self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
             # formation
-            move_list = self.info()
-            self.take_initial_position(move_list)
+##            move_list = self.info()
+##            self.take_initial_position(move_list)
             # compact
             for vt in [0,3,4]:
               self.compact_square_formation(vt)
@@ -336,97 +337,125 @@ class MyStrategy:
           move_dict['max_speed'] = max_speed
         return move_dict    
         #self.delayed_moves.append(move_dict)
-        
-        
-    def info(self):
-        START_POINTS = [point2d(34.5, 34.5),  point2d(93.5, 34.5),  point2d(152.5, 34.5)]
-        vt_list_1 = [0, 3, 4]
-        vt_list_2 = list(vt_list_1)
-        from_to_dist_list=[]
-        # te kto i tak na svoem meste
-        for vt in vt_list_1:
-            vs = self.get_vehicles(Ownership.ALLY, vt)
-            if vs:
-               x = np.mean([v.x for v in vs])
-               y = np.mean([v.y for v in vs])
-            vehicle_p = point2d(x,y)
 
-            if vehicle_p in START_POINTS:
-                min_p = vehicle_p
-                min_dist = 0
-                from_to_dist_list.append( (vehicle_p, min_p, min_dist, vt) )
-                START_POINTS.remove(min_p)
-                vt_list_2.remove(vt)
-        # do kogo blije
-        for vt in vt_list_2:
-            vs = self.get_vehicles(Ownership.ALLY, vt)
-            if vs:
-               x = np.mean([v.x for v in vs])
-               y = np.mean([v.y for v in vs])
-            vehicle_p = point2d(x,y)                
-            min_dist = 1500
-            min_p = START_POINTS[0]
-            for p in START_POINTS:
-                dist_p_to_vehicle = p.get_distance_to_point(vehicle_p)
-                if dist_p_to_vehicle < min_dist:
-                    min_dist = dist_p_to_vehicle
-                    min_p = p
-            from_to_dist_list.append( (vehicle_p, min_p, min_dist, vt) )
-            START_POINTS.remove(min_p)    
-            print('my {} center = {}'.format(repr_v_type(vt),(x, y)))
-            print('nearest point = {}'.format(min_p))
-
-        for x in from_to_dist_list:
-            print('from {} to {} dist {} type {}'.format(x[0], x[1], x[2], repr_v_type(x[3])))
-        move_list = sorted(from_to_dist_list, key=key_sort_by_dist)
-        print('sorted____')
-        for x in move_list:
-            print('from {} to {} dist {} type {}'.format(x[0], x[1], x[2], repr_v_type(x[3])))
-        #now move it
-        return move_list
-            
-    def take_initial_position(self, move_list):
-        for m in move_list:
-            from_p = m[0]
-            to_p = m[1]
-            dist = m[2]
-            if from_p != to_p :
-                #select
-                print('start select '+str(from_p))
-                print('selection '+str(self.start_formation_selection(from_p)))
-                move_dict = self.move_selection_rect(self.start_formation_selection(from_p))
-                self.delayed_moves.append(move_dict)
-                if to_p.x == from_p.x:
-                    #srazu vverx
-                    move_x = 0
-                    move_y = to_p.y - from_p.y
-                    move_dict = self.move_move(move_x, move_y, None)
-                    self.delayed_moves.append(move_dict)
-                    print('srazu vverx '+str((move_x,move_y)))
-                else:
-                    # snachala vbok
-                    move_x = to_p.x - from_p.x
-                    move_y = 0#to_p.y - from_p.y
-                    move_dict = self.move_move(move_x, move_y, None)
-                    self.delayed_moves.append(move_dict)
-                    dist_vbok = move_x
-                    print('vbok '+str((move_x,move_y)))
-                    #potom vverh
-                    move_x = 0
-                    move_y = to_p.y - from_p.y
-                    tikov_vbok = abs(int(dist_vbok/(0.4*0.6)))
-                    #sel
-                    move_dict = self.move_selection_rect(self.start_formation_selection(point2d(to_p.x,from_p.y)))
-                    self.tick_moves[tikov_vbok] = move_dict
-                    #mov
-                    move_dict = self.move_move(move_x, move_y, None)
-                    self.tick_moves[tikov_vbok+1] = move_dict
-                    print('potom vverx '+str((move_x,move_y)))
-                    ##            move_dict = self.move_move(move_x, move_y, None)
-##            self.tick_moves[310] = move_dict
-                pass
-        pass
-            
+    def spread_square_formation(self, center):
+        right_x = center.x+25
+        top_y   = center.y - 25 - UNIT_RADIUS
+        bottom_y= center.y + 25 + UNIT_RADIUS 
+        for i in range(5):
+           #sel col
+           l = right_x - UNIT_RADIUS - SPACE-2*UNIT_RADIUS  # - i*(SPACE+2*UNIT_RADIUS)
+           t = top_y
+           r = right_x+UNIT_RADIUS# - i*(SPACE+2*UNIT_RADIUS)
+           b = bottom_y
+           move_dict = self.move_selection_rect(ltrb_dict(l,t,r,b))
+           self.delayed_moves.append(move_dict)
+##       # cycle col selection
+##       sign=1
+##       for i in range(10):
+##           left   = max_a_x-UNIT_RADIUS - i*(SPACE+2*UNIT_RADIUS)
+##           top    = min_a_y-UNIT_RADIUS 
+##           right  = max_a_x+UNIT_RADIUS - i*(SPACE+2*UNIT_RADIUS)
+##           bottom = max_a_y+UNIT_RADIUS
+##
+##           move_dict = self.move_selection_rect(ltrb_dict(left,top,right,bottom))
+##           self.delayed_moves.append(move_dict)
+##           #max_speed=0.4,
+##           x=1*i+1
+##           y=sign*1.5
+##           move_dict = self.move_move(x,y,None)
+##           self.delayed_moves.append(move_dict)
+##           sign=-1*sign        
+        
+##    def info(self):
+##        START_POINTS = [point2d(34.5, 34.5),  point2d(93.5, 34.5),  point2d(152.5, 34.5)]
+##        vt_list_1 = [0, 3, 4]
+##        vt_list_2 = list(vt_list_1)
+##        from_to_dist_list=[]
+##        # te kto i tak na svoem meste
+##        for vt in vt_list_1:
+##            vs = self.get_vehicles(Ownership.ALLY, vt)
+##            if vs:
+##               x = np.mean([v.x for v in vs])
+##               y = np.mean([v.y for v in vs])
+##            vehicle_p = point2d(x,y)
+##
+##            if vehicle_p in START_POINTS:
+##                min_p = vehicle_p
+##                min_dist = 0
+##                from_to_dist_list.append( (vehicle_p, min_p, min_dist, vt) )
+##                START_POINTS.remove(min_p)
+##                vt_list_2.remove(vt)
+##        # do kogo blije
+##        for vt in vt_list_2:
+##            vs = self.get_vehicles(Ownership.ALLY, vt)
+##            if vs:
+##               x = np.mean([v.x for v in vs])
+##               y = np.mean([v.y for v in vs])
+##            vehicle_p = point2d(x,y)                
+##            min_dist = 1500
+##            min_p = START_POINTS[0]
+##            for p in START_POINTS:
+##                dist_p_to_vehicle = p.get_distance_to_point(vehicle_p)
+##                if dist_p_to_vehicle < min_dist:
+##                    min_dist = dist_p_to_vehicle
+##                    min_p = p
+##            from_to_dist_list.append( (vehicle_p, min_p, min_dist, vt) )
+##            START_POINTS.remove(min_p)    
+##            print('my {} center = {}'.format(repr_v_type(vt),(x, y)))
+##            print('nearest point = {}'.format(min_p))
+##
+##        for x in from_to_dist_list:
+##            print('from {} to {} dist {} type {}'.format(x[0], x[1], x[2], repr_v_type(x[3])))
+##        move_list = sorted(from_to_dist_list, key=key_sort_by_dist)
+##        print('sorted____')
+##        for x in move_list:
+##            print('from {} to {} dist {} type {}'.format(x[0], x[1], x[2], repr_v_type(x[3])))
+##        #now move it
+##        return move_list
+##            
+##    def take_initial_position(self, move_list):
+##        for m in move_list:
+##            from_p = m[0]
+##            to_p = m[1]
+##            dist = m[2]
+##            if from_p != to_p :
+##                #select
+##                print('start select '+str(from_p))
+##                print('selection '+str(self.start_formation_selection(from_p)))
+##                move_dict = self.move_selection_rect(self.start_formation_selection(from_p))
+##                self.delayed_moves.append(move_dict)
+##                if to_p.x == from_p.x:
+##                    #srazu vverx
+##                    move_x = 0
+##                    move_y = to_p.y - from_p.y
+##                    move_dict = self.move_move(move_x, move_y, None)
+##                    self.delayed_moves.append(move_dict)
+##                    print('srazu vverx '+str((move_x,move_y)))
+##                else:
+##                    # snachala vbok
+##                    move_x = to_p.x - from_p.x
+##                    move_y = 0#to_p.y - from_p.y
+##                    move_dict = self.move_move(move_x, move_y, None)
+##                    self.delayed_moves.append(move_dict)
+##                    dist_vbok = move_x
+##                    print('vbok '+str((move_x,move_y)))
+##                    #potom vverh
+##                    move_x = 0
+##                    move_y = to_p.y - from_p.y
+##                    tikov_vbok = abs(int(dist_vbok/(0.4*0.6)))
+##                    #sel
+##                    move_dict = self.move_selection_rect(self.start_formation_selection(point2d(to_p.x,from_p.y)))
+##                    self.tick_moves[tikov_vbok] = move_dict
+##                    #mov
+##                    move_dict = self.move_move(move_x, move_y, None)
+##                    self.tick_moves[tikov_vbok+1] = move_dict
+##                    print('potom vverx '+str((move_x,move_y)))
+##                    ##            move_dict = self.move_move(move_x, move_y, None)
+####            self.tick_moves[310] = move_dict
+##                pass
+##        pass
+##            
     def attack(self):
         pass
 ##        # --------- TANK -----------
