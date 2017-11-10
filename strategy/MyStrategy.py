@@ -151,6 +151,7 @@ class MyStrategy:
     vehicleById = {}
     updateTickByVehicleId = {}
     delayed_moves = deque()
+    tick_moves = {}
 
     def get_vehicles(self, ownership=Ownership.ANY, vehicle_type=None):
         vehicles = self.vehicleById.values()
@@ -183,6 +184,10 @@ class MyStrategy:
     def initializeStrategy(self, world, game):
         self.terrain_map = world.terrain_by_cell_x_y
         self.weather_map = world.weather_by_cell_x_y
+##        #TEST
+##        self.tick_moves[20]='20 tick'
+##        self.tick_moves[30]='30 tick'
+##        self.tick_moves[40]='40 tick'
 
     def initializeTick(self, me, world, game, move):
         self.me = me
@@ -221,7 +226,8 @@ class MyStrategy:
         return True
 
     def move(self, me,  world, game, move):
-        print('--------{}------------'.format(world.tick_index))
+        ti = world.tick_index
+        print('--------{}------------'.format(ti))
 
         if LOG:
             f = open('..\\draw.txt', 'w')
@@ -232,6 +238,13 @@ class MyStrategy:
 
         # === INITIALIZATION  ===========
         self.update_state(me, world, game, move)
+
+        if self.tick_moves:
+            print(self.tick_moves)
+            if ti in self.tick_moves.keys():
+                print('TICK {} MOVE {}'.format(ti, self.tick_moves[ti]))
+                move_dict = self.tick_moves.pop(ti)
+                self.delayed_moves.appendleft(move_dict)
 
         if self.me.remaining_action_cooldown_ticks > 0:
             return
@@ -265,23 +278,29 @@ class MyStrategy:
         print('_move')
 ##        #TEST
 ##        if self.world.tick_index == 0:
-##            self.move_selection_rect(self.start_formation_selection(point2d(152.5, 34.5)))
+##            move_dict = self.move_selection_rect(self.start_formation_selection(point2d(152.5, 34.5)))
+##            self.delayed_moves.append(move_dict)
+##            
 ##            move_x = 100
 ##            move_y = 0#to_p.y - from_p.y
-##            self.move_move(move_x, move_y, None)
+##            move_dict = self.move_move(move_x, move_y, None)
+##            self.delayed_moves.append(move_dict)
 ##            move_x = 0
 ##            move_y = 100#to_p.y - from_p.y
-##            self.move_move(move_x, move_y, None)
+##            move_dict = self.move_move(move_x, move_y, None)
+##            self.tick_moves[310] = move_dict
 ##        return
 
     
-        #self.fighter_covered_tank()
+        
         if self.world.tick_index == 0:
-            # formation
+            # cover
             self.cover(VehicleType.TANK, VehicleType.FIGHTER)
             self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
-            #move_list = self.info()
-            #self.take_initial_position(move_list)
+            # formation
+            move_list = self.info()
+            self.take_initial_position(move_list)
+            # compact
             for vt in [0,3,4]:
               self.compact_square_formation(vt)
         else:
@@ -306,7 +325,7 @@ class MyStrategy:
         move_dict['right']  = ltrb_dict['right']
         move_dict['bottom'] = ltrb_dict['bottom']
         return move_dict
-        self.delayed_moves.append(move_dict)
+        #self.delayed_moves.append(move_dict)
 
     def move_move(self,x,y,max_speed):
         move_dict = {}
@@ -316,7 +335,7 @@ class MyStrategy:
         if max_speed:
           move_dict['max_speed'] = max_speed
         return move_dict    
-        self.delayed_moves.append(move_dict)
+        #self.delayed_moves.append(move_dict)
         
         
     def info(self):
@@ -390,42 +409,52 @@ class MyStrategy:
                     move_y = 0#to_p.y - from_p.y
                     move_dict = self.move_move(move_x, move_y, None)
                     self.delayed_moves.append(move_dict)
+                    dist_vbok = move_x
                     print('vbok '+str((move_x,move_y)))
-##                    #potom vverh
-##                    move_x = 0
-##                    move_y = to_p.y - from_p.y
-##                    self.move_move(move_x, move_y, None)
-##                    print('potom vverx '+str((move_x,move_y)))
+                    #potom vverh
+                    move_x = 0
+                    move_y = to_p.y - from_p.y
+                    tikov_vbok = abs(int(dist_vbok/(0.4*0.6)))
+                    #sel
+                    move_dict = self.move_selection_rect(self.start_formation_selection(point2d(to_p.x,from_p.y)))
+                    self.tick_moves[tikov_vbok] = move_dict
+                    #mov
+                    move_dict = self.move_move(move_x, move_y, None)
+                    self.tick_moves[tikov_vbok+1] = move_dict
+                    print('potom vverx '+str((move_x,move_y)))
+                    ##            move_dict = self.move_move(move_x, move_y, None)
+##            self.tick_moves[310] = move_dict
                 pass
         pass
             
     def attack(self):
-        # --------- TANK -----------
-        vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
-        if vs:
-           at_x = np.mean([v.x for v in vs])
-           at_y = np.mean([v.y for v in vs])
-           print('my tank center = {}'.format((at_x, at_y)))
-        vs = self.get_vehicles(Ownership.ENEMY, VehicleType.TANK)
-        if vs:
-           et_x = np.mean([v.x for v in vs])
-           et_y = np.mean([v.y for v in vs])
-           print('enemy tank center = {}'.format((et_x, et_y)))
-        target_x = et_x-at_x
-        target_y = et_y-at_y
-        print('target TANK = '+str((target_x,target_y)))
-        self.delayed_moves.append(dict(
-            action=ActionType.CLEAR_AND_SELECT,
-            right=self.world.width,
-            bottom=self.world.height,
-            
-        ))
-        self.delayed_moves.append(dict(
-            action=ActionType.MOVE,
-            max_speed=0.4*0.6,
-            x=target_x,
-            y=target_y,
-        ))
+        pass
+##        # --------- TANK -----------
+##        vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
+##        if vs:
+##           at_x = np.mean([v.x for v in vs])
+##           at_y = np.mean([v.y for v in vs])
+##           print('my tank center = {}'.format((at_x, at_y)))
+##        vs = self.get_vehicles(Ownership.ENEMY, VehicleType.TANK)
+##        if vs:
+##           et_x = np.mean([v.x for v in vs])
+##           et_y = np.mean([v.y for v in vs])
+##           print('enemy tank center = {}'.format((et_x, et_y)))
+##        target_x = et_x-at_x
+##        target_y = et_y-at_y
+##        print('target TANK = '+str((target_x,target_y)))
+##        self.delayed_moves.append(dict(
+##            action=ActionType.CLEAR_AND_SELECT,
+##            right=self.world.width,
+##            bottom=self.world.height,
+##            
+##        ))
+##        self.delayed_moves.append(dict(
+##            action=ActionType.MOVE,
+##            max_speed=0.4*0.6,
+##            x=target_x,
+##            y=target_y,
+##        ))
   
     def cover(self,v_type1, v_type2):
         # --------- v_type1 -----------
@@ -486,8 +515,14 @@ class MyStrategy:
 
         
 print('Hello codewars v 0.0.5 ( start position maneures )')
+d={}
+d[1]='one'
+d[5]='five'
+i=5
+if i in d.keys():
+    print(d[i])
 
-print( bool(None))
+print( bool(d))
 # v 0.0.1 ( basics )
 # v 0.0.2 ( get any type vehicles )
 # v 0.0.3 ( add deque )
