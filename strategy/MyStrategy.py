@@ -6,7 +6,7 @@ from model.World import World
 
 from model.VehicleType import VehicleType
 
-from collections import deque
+from collections import deque, namedtuple
 import numpy as np
 from math import *
 
@@ -134,7 +134,15 @@ def upd_vehicle(vehicle, vehicle_up):
     vehicle.remaining_attack_cooldown_ticks = vehicle_up.remaining_attack_cooldown_ticks
     vehicle.selected = vehicle_up.selected
     vehicle.groups = vehicle_up.groups
-
+    
+def ltrb_dict(l,t,r,b):
+    r_dict={}
+    r_dict['left']   = l
+    r_dict['top']    = t
+    r_dict['right']  = r
+    r_dict['bottom'] = b
+    return r_dict
+    
 
 class MyStrategy:
     terrain_map = []
@@ -255,19 +263,61 @@ class MyStrategy:
     def _move(self):
         
         print('_move')
-        self.info()
+        #TEST
+        if self.world.tick_index == 0:
+            self.move_selection_rect(self.start_formation_selection(point2d(152.5, 34.5)))
+            move_x = 100
+            move_y = 0#to_p.y - from_p.y
+            self.move_move(move_x, move_y, None)
+            move_x = 0
+            move_y = 100#to_p.y - from_p.y
+            self.move_move(move_x, move_y, None)
         return
+
+    
         #self.fighter_covered_tank()
         if self.world.tick_index == 0:
             # formation
-            self.cover(VehicleType.TANK, VehicleType.FIGHTER)
-            self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
-            for vt in [0,3,4]:
-              self.compact_square_formation(vt)
+##            self.cover(VehicleType.TANK, VehicleType.FIGHTER)
+##            self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
+            move_list = self.info()
+            self.take_initial_position(move_list)
+##            for vt in [0,3,4]:
+##              self.compact_square_formation(vt)
         else:
+            pass
             #ATTACk
-            self.attack()
+            #self.attack()
+            
+    def start_formation_selection(self, center_formation):
+        l = center_formation.x - 25
+        r = center_formation.x + 25
+        t = center_formation.y - 25
+        b = center_formation.y + 25
+        return ltrb_dict(l,t,r,b)#{'left':l,'top':t, 'right':r, 'bottom':b} # refact to ltrb_dict
 
+
+    
+    def move_selection_rect(self, ltrb_dict):
+        move_dict = {}
+        move_dict['action'] = ActionType.CLEAR_AND_SELECT
+        move_dict['left']   = ltrb_dict['left']
+        move_dict['top']    = ltrb_dict['top']
+        move_dict['right']  = ltrb_dict['right']
+        move_dict['bottom'] = ltrb_dict['bottom']
+        self.delayed_moves.append(move_dict)
+
+    def move_move(self,x,y,max_speed):
+        move_dict = {}
+        move_dict['action'] = ActionType.MOVE
+        move_dict['x']      = x
+        move_dict['y']      = y
+        if max_speed:
+          move_dict['max_speed'] = max_speed
+            
+        self.delayed_moves.append(move_dict)
+        
+        
     def info(self):
         START_POINTS = [point2d(34.5, 34.5),  point2d(93.5, 34.5),  point2d(152.5, 34.5)]
         vt_list_1 = [0, 3, 4]
@@ -313,7 +363,37 @@ class MyStrategy:
         for x in move_list:
             print('from {} to {} dist {} type {}'.format(x[0], x[1], x[2], repr_v_type(x[3])))
         #now move it
-
+        return move_list
+            
+    def take_initial_position(self, move_list):
+        for m in move_list:
+            from_p = m[0]
+            to_p = m[1]
+            dist = m[2]
+            if from_p != to_p :
+                #select
+                print('start select '+str(from_p))
+                print('selection '+str(self.start_formation_selection(from_p)))
+                self.move_selection_rect(self.start_formation_selection(from_p))
+                if to_p.x == from_p.x:
+                    #srazu vverx
+                    move_x = 0
+                    move_y = to_p.y - from_p.y
+                    self.move_move(move_x, move_y, None)
+                    print('srazu vverx '+str((move_x,move_y)))
+                else:
+                    # snachala vbok
+                    move_x = to_p.x - from_p.x
+                    move_y = 0#to_p.y - from_p.y
+                    self.move_move(move_x, move_y, None)
+                    print('vbok '+str((move_x,move_y)))
+##                    #potom vverh
+##                    move_x = 0
+##                    move_y = to_p.y - from_p.y
+##                    self.move_move(move_x, move_y, None)
+##                    print('potom vverx '+str((move_x,move_y)))
+                pass
+        pass
             
     def attack(self):
         # --------- TANK -----------
@@ -467,27 +547,18 @@ class MyStrategy:
                right  = max_a_x+UNIT_RADIUS - i*(SPACE+2*UNIT_RADIUS)
                bottom = max_a_y+UNIT_RADIUS
 
-               self.delayed_moves.append(dict(
-                action=ActionType.CLEAR_AND_SELECT,
-                left = left,
-                top = top,
-                right=right,
-                bottom=bottom,
-                #vehicle_type = vehicle_type
-               ))
-               self.delayed_moves.append(dict(
-                action=ActionType.MOVE,
-                #max_speed=0.4,
-                x=1*i+1,
-                y=sign*1.5,
-               ))
+               self.move_selection_rect(ltrb_dict(left,top,right,bottom))
+               #max_speed=0.4,
+               x=1*i+1
+               y=sign*1.5
+               self.move_move(x,y,None)
                sign=-1*sign
         
 
         
 print('Hello codewars v 0.0.5 ( start position maneures )')
 
-
+print( bool(None))
 # v 0.0.1 ( basics )
 # v 0.0.2 ( get any type vehicles )
 # v 0.0.3 ( add deque )
