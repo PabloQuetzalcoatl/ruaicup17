@@ -263,27 +263,27 @@ class MyStrategy:
     def _move(self):
         
         print('_move')
-        #TEST
-        if self.world.tick_index == 0:
-            self.move_selection_rect(self.start_formation_selection(point2d(152.5, 34.5)))
-            move_x = 100
-            move_y = 0#to_p.y - from_p.y
-            self.move_move(move_x, move_y, None)
-            move_x = 0
-            move_y = 100#to_p.y - from_p.y
-            self.move_move(move_x, move_y, None)
-        return
+##        #TEST
+##        if self.world.tick_index == 0:
+##            self.move_selection_rect(self.start_formation_selection(point2d(152.5, 34.5)))
+##            move_x = 100
+##            move_y = 0#to_p.y - from_p.y
+##            self.move_move(move_x, move_y, None)
+##            move_x = 0
+##            move_y = 100#to_p.y - from_p.y
+##            self.move_move(move_x, move_y, None)
+##        return
 
     
         #self.fighter_covered_tank()
         if self.world.tick_index == 0:
             # formation
-##            self.cover(VehicleType.TANK, VehicleType.FIGHTER)
-##            self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
-            move_list = self.info()
-            self.take_initial_position(move_list)
-##            for vt in [0,3,4]:
-##              self.compact_square_formation(vt)
+            self.cover(VehicleType.TANK, VehicleType.FIGHTER)
+            self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
+            #move_list = self.info()
+            #self.take_initial_position(move_list)
+            for vt in [0,3,4]:
+              self.compact_square_formation(vt)
         else:
             pass
             #ATTACk
@@ -305,6 +305,7 @@ class MyStrategy:
         move_dict['top']    = ltrb_dict['top']
         move_dict['right']  = ltrb_dict['right']
         move_dict['bottom'] = ltrb_dict['bottom']
+        return move_dict
         self.delayed_moves.append(move_dict)
 
     def move_move(self,x,y,max_speed):
@@ -314,7 +315,7 @@ class MyStrategy:
         move_dict['y']      = y
         if max_speed:
           move_dict['max_speed'] = max_speed
-            
+        return move_dict    
         self.delayed_moves.append(move_dict)
         
         
@@ -374,18 +375,21 @@ class MyStrategy:
                 #select
                 print('start select '+str(from_p))
                 print('selection '+str(self.start_formation_selection(from_p)))
-                self.move_selection_rect(self.start_formation_selection(from_p))
+                move_dict = self.move_selection_rect(self.start_formation_selection(from_p))
+                self.delayed_moves.append(move_dict)
                 if to_p.x == from_p.x:
                     #srazu vverx
                     move_x = 0
                     move_y = to_p.y - from_p.y
-                    self.move_move(move_x, move_y, None)
+                    move_dict = self.move_move(move_x, move_y, None)
+                    self.delayed_moves.append(move_dict)
                     print('srazu vverx '+str((move_x,move_y)))
                 else:
                     # snachala vbok
                     move_x = to_p.x - from_p.x
                     move_y = 0#to_p.y - from_p.y
-                    self.move_move(move_x, move_y, None)
+                    move_dict = self.move_move(move_x, move_y, None)
+                    self.delayed_moves.append(move_dict)
                     print('vbok '+str((move_x,move_y)))
 ##                    #potom vverh
 ##                    move_x = 0
@@ -422,84 +426,7 @@ class MyStrategy:
             x=target_x,
             y=target_y,
         ))
-    def assembly(self):
-        total_vs = []
-        vs = self.get_vehicles(Ownership.ALLY, VehicleType.ARRV)
-        total_vs +=vs
-        if vs:
-           at_a_x = np.mean([v.x for v in vs])
-           at_a_y = np.mean([v.y for v in vs])
-           a_a = (at_a_x,at_a_y)
-        vs = self.get_vehicles(Ownership.ALLY, VehicleType.TANK)
-        total_vs +=vs
-        if vs:
-           at_t_x = np.mean([v.x for v in vs])
-           at_t_y = np.mean([v.y for v in vs])
-           a_t = (at_t_x,at_t_y)
-        vs = self.get_vehicles(Ownership.ALLY, VehicleType.IFV)
-        total_vs +=vs
-        if vs:
-           at_i_x = np.mean([v.x for v in vs])
-           at_i_y = np.mean([v.y for v in vs])
-           a_i = (at_i_x,at_i_y)
-
-        p0=()
-        
-
-           
-        if total_vs:
-           at_x = np.mean([v.x for v in total_vs])
-           at_y = np.mean([v.y for v in total_vs])
-           
-        #VehicleType.ARRV
-        target_x = at_x-at_a_x
-        target_y = at_y-at_a_y
-        self.delayed_moves.append(dict(
-            action=ActionType.CLEAR_AND_SELECT,
-            right=self.world.width,
-            bottom=self.world.height,
-            vehicle_type = VehicleType.ARRV
-        ))
-        # type2 goto type1
-        self.delayed_moves.append(dict(
-            action=ActionType.MOVE,
-            #max_speed=0.4,
-            x=target_x,
-            y=target_y,
-        ))
-        #VehicleType.TANK
-        target_x = at_x-at_t_x
-        target_y = at_y-at_t_y
-        self.delayed_moves.append(dict(
-            action=ActionType.CLEAR_AND_SELECT,
-            right=self.world.width,
-            bottom=self.world.height,
-            vehicle_type = VehicleType.TANK
-        ))
-        # type2 goto type1
-        self.delayed_moves.append(dict(
-            action=ActionType.MOVE,
-            #max_speed=0.4,
-            x=target_x,
-            y=target_y,
-        ))
-        #VehicleType.IFV
-        target_x = at_x-at_i_x
-        target_y = at_y-at_i_y
-        self.delayed_moves.append(dict(
-            action=ActionType.CLEAR_AND_SELECT,
-            right=self.world.width,
-            bottom=self.world.height,
-            vehicle_type = VehicleType.IFV
-        ))
-        # type2 goto type1
-        self.delayed_moves.append(dict(
-            action=ActionType.MOVE,
-            #max_speed=0.4,
-            x=target_x,
-            y=target_y,
-        ))        
-        pass
+  
     def cover(self,v_type1, v_type2):
         # --------- v_type1 -----------
         vs = self.get_vehicles(Ownership.ALLY, v_type1)
@@ -547,11 +474,13 @@ class MyStrategy:
                right  = max_a_x+UNIT_RADIUS - i*(SPACE+2*UNIT_RADIUS)
                bottom = max_a_y+UNIT_RADIUS
 
-               self.move_selection_rect(ltrb_dict(left,top,right,bottom))
+               move_dict = self.move_selection_rect(ltrb_dict(left,top,right,bottom))
+               self.delayed_moves.append(move_dict)
                #max_speed=0.4,
                x=1*i+1
                y=sign*1.5
-               self.move_move(x,y,None)
+               move_dict = self.move_move(x,y,None)
+               self.delayed_moves.append(move_dict)
                sign=-1*sign
         
 
