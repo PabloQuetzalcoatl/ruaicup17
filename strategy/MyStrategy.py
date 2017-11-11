@@ -279,17 +279,8 @@ class MyStrategy:
 ##        #TEST
         if self.world.tick_index == 20:
             self.start_order_begin()
-##            move_dict = self.move_selection_rect(self.start_formation_selection(point2d(152.5, 34.5)))
-##            self.delayed_moves.append(move_dict)
-##            
-##            move_x = 100
-##            move_y = 0#to_p.y - from_p.y
-##            move_dict = self.move_move(move_x, move_y, None)
-##            self.delayed_moves.append(move_dict)
-##            move_x = 0
-##            move_y = 100#to_p.y - from_p.y
-##            move_dict = self.move_move(move_x, move_y, None)
-##            self.tick_moves[310] = move_dict
+            #self.spread_square_formation(point2d(152.5, 34.5), 1)
+            #self.spread_square_formation(point2d(93.5, 34.5), 0)
         return
 
     
@@ -342,37 +333,51 @@ class MyStrategy:
         # ------------1 row -------------
         START_POINTS_1ROW = [point2d(34.5, 34.5),  point2d(93.5, 34.5),  point2d(152.5, 34.5)]
         START_POINTS_1ROW.reverse()
+        mul_row_shift=2
         for i,p in enumerate(START_POINTS_1ROW):
-            add_step = abs(i-2)*4
-            print('for {} point add {} step'.format(i,add_step))
-            self.spread_square_formation(p, add_step)
+            mul_gr_shift = abs(i-2)
+            #print('for {} point add {} step'.format(i,add_step))
+            self.spread_square_formation(p, mul_gr_shift, mul_row_shift)
         # ------------ 2 row -------------
         START_POINTS_2ROW = [point2d(34.5, 93.5),  point2d(93.5, 93.5),  point2d(152.5, 93.5)]
         START_POINTS_2ROW.reverse()
+        mul_row_shift=1
         for i,p in enumerate(START_POINTS_2ROW):
-            add_step = abs(i-2)*4 +1
-            print('for {} point add {} step'.format(i,add_step))
-            self.spread_square_formation(p, add_step)
+            mul_gr_shift = abs(i-2)
+            #print('for {} point add {} step'.format(i,add_step))
+            self.spread_square_formation(p, mul_gr_shift, mul_row_shift)
         # ------------ 3 row -------------            
         START_POINTS_3ROW = [point2d(34.5, 152.5), point2d(93.5, 152.5), point2d(152.5, 152.5)]
         START_POINTS_3ROW.reverse()
+        mul_row_shift=0
         for i,p in enumerate(START_POINTS_3ROW):
-            add_step = abs(i-2)*4 +2
-            print('for {} point add {} step'.format(i,add_step))
-            self.spread_square_formation(p, add_step)
+            mul_gr_shift = abs(i-2)
+            #print('for {} point add {} step'.format(i,add_step))
+            self.spread_square_formation(p, mul_gr_shift, mul_row_shift)
 
         # 1 row down
         l = 0
         t = 0
-        r = (4*UNIT_RADIUS+4*SPACE)*30
+        r = (4*UNIT_RADIUS+4*SPACE)*50
         b = 59
         move_dict = self.move_selection_rect(ltrb_dict(l,t,r,b))
         self.delayed_moves.append(move_dict)
         
         move_dict = self.move_move(0, 45+14, None)
         self.delayed_moves.append(move_dict)
+
+        # 3 row up
+        l = 0
+        t = 127.5
+        r = (4*UNIT_RADIUS+4*SPACE)*50
+        b = 177
+        move_dict = self.move_selection_rect(ltrb_dict(l,t,r,b))
+        self.delayed_moves.append(move_dict)
+        
+        move_dict = self.move_move(0,-( 45+14), None)
+        self.delayed_moves.append(move_dict)
             
-    def spread_square_formation(self, center, add_step_count):
+    def spread_square_formation(self, center, mul_gr_shift, mul_row_shift):
         r_x = center.x+22.5
         top_y   = center.y - 25 - UNIT_RADIUS
         bottom_y= center.y + 25 + UNIT_RADIUS 
@@ -385,9 +390,11 @@ class MyStrategy:
             move_dict = self.move_selection_rect(ltrb_dict(l,t,r,b))
             self.delayed_moves.append(move_dict)
 
-            one_step = 4*UNIT_RADIUS+SPACE
+            one_step = 2*(4*UNIT_RADIUS+2*SPACE)
+            group_shift = 4.8*one_step*mul_gr_shift
+            row_shift = one_step*mul_row_shift
             multi=abs(i-4)
-            new_x=multi*one_step+add_step_count*one_step
+            new_x=multi*one_step + group_shift + row_shift
             new_y=0
             move_dict = self.move_move(new_x, new_y, None)
             self.delayed_moves.append(move_dict)
@@ -584,7 +591,7 @@ class MyStrategy:
         
 
         
-print('Hello codewars v 0.0.5 ( start position maneures )')
+print('Hello codewars v 0.0.6 ( battle order )')
 d={}
 d[1]='one'
 d[5]='five'
@@ -598,4 +605,5 @@ print( bool(d))
 # v 0.0.3 ( add deque )
 # v 0.0.4 ( first move )
 # v 0.0.5 ( start position maneures )
+# v 0.0.6 ( battle order )
 #https://github.com/xmanatee/raic.2017/blob/master/MyStrategy.py
