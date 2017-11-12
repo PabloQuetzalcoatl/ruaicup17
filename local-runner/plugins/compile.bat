@@ -1,11 +1,5 @@
 @echo off
 
-"C:\Program Files\Java\jdk1.8.0_111\bin\javac" -encoding UTF-8 *.java
-
-echo Not implemented.
-pause
-exit 0
-
 call wipe.bat
 
 if not "%JAVA8_64_HOME%"=="" (

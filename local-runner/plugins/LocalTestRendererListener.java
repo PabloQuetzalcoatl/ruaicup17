@@ -2,8 +2,6 @@ import java.awt.*;
 
 import model.*;
 
-import java.io.*;
-
 import static java.lang.StrictMath.*;
 
 public final class LocalTestRendererListener {
@@ -19,79 +17,14 @@ public final class LocalTestRendererListener {
     private double width;
     private double height;
 
-    private Vehicle[] vehicles;
-
     public void beforeDrawScene(Graphics graphics, World world, Game game, int canvasWidth, int canvasHeight,
                                 double left, double top, double width, double height) {
         updateFields(graphics, world, game, canvasWidth, canvasHeight, left, top, width, height);
-       
-        String drawFileName = "..\\draw.txt";
 
-        try(BufferedReader br = new BufferedReader(new FileReader(drawFileName))) {
-
-            String line = br.readLine();
-
-            while(line != null) {
-
-                String[] parts = line.split(" ");
-
-                if(parts[0].equals("setColor")) {
-
-                    int red = Integer.parseInt(parts[1]);
-
-                    int green = Integer.parseInt(parts[2]);
-
-                    int blue = Integer.parseInt(parts[3]);
-
-                    graphics.setColor(new Color(red, green, blue));
-
-                } else if(parts[0].equals("drawLine")) {
-
-                    double x1 = Double.parseDouble(parts[1]);
-
-                    double y1 = Double.parseDouble(parts[2]);
-
-                    double x2 = Double.parseDouble(parts[3]);
-
-                    double y2 = Double.parseDouble(parts[4]);
-
-                    drawLine(x1, y1, x2, y2);
-
-                } else if(parts[0].equals("fillCircle")) {
-
-                    double x = Double.parseDouble(parts[1]);
-
-                    double y = Double.parseDouble(parts[2]);
-
-                    double radius = Double.parseDouble(parts[3]);
-
-                    fillCircle(x, y, radius);
-
-                }
-
-                line = br.readLine();
-
-            }
-
-            br.close();
-
-        } catch(FileNotFoundException e) {
-
-        } catch(IOException e) {
-
-        } finally {
-
-        }
-
-        graphics.setColor(Color.RED);
+        graphics.setColor(Color.BLACK);
         drawRect(100.0D, 150.0D, 900.0D, 950.0D);
-        fillCircle(512.0D, 512.0D, 200.0D);
 
-        if (vehicles == null) {
-            vehicles = world.getNewVehicles();
-        }
-
-        for (Vehicle vehicle : vehicles) {
+        for (Vehicle vehicle : world.getVehicles()) {
             double radius = vehicle.getRadius();
             double diameter = radius * 2.0D;
             drawRect(vehicle.getX() - radius, vehicle.getY() - radius, diameter, diameter);
@@ -102,67 +35,8 @@ public final class LocalTestRendererListener {
                                double left, double top, double width, double height) {
         updateFields(graphics, world, game, canvasWidth, canvasHeight, left, top, width, height);
 
-        String drawFileName = "..\\draw.txt";
-
-         try(BufferedReader br = new BufferedReader(new FileReader(drawFileName))) {
-
-                String line = br.readLine();
-
-                while(line != null) {
-
-                    String[] parts = line.split(" ");
-
-                    if(parts[0].equals("setColor")) {
-
-                        int red = Integer.parseInt(parts[1]);
-
-                        int green = Integer.parseInt(parts[2]);
-
-                        int blue = Integer.parseInt(parts[3]);
-
-                        graphics.setColor(new Color(red, green, blue));
-
-                    } else if(parts[0].equals("drawLine")) {
-
-                        double x1 = Double.parseDouble(parts[1]);
-
-                        double y1 = Double.parseDouble(parts[2]);
-
-                        double x2 = Double.parseDouble(parts[3]);
-
-                        double y2 = Double.parseDouble(parts[4]);
-
-                        drawLine(x1, y1, x2, y2);
-
-                    } else if(parts[0].equals("fillCircle")) {
-
-                        double x = Double.parseDouble(parts[1]);
-
-                        double y = Double.parseDouble(parts[2]);
-
-                        double radius = Double.parseDouble(parts[3]);
-
-                        fillCircle(x, y, radius);
-
-                    }
-
-                    line = br.readLine();
-
-                }
-
-                br.close();
-
-            } catch(FileNotFoundException e) {
-
-            } catch(IOException e) {
-
-         } finally {
-
-         }
-
         graphics.setColor(Color.BLACK);
         drawCircle(200.0D, 200.0D, 500.0D);
-        fillCircle(512.0D, 512.0D, 200.0D);
     }
 
     private void updateFields(Graphics graphics, World world, Game game, int canvasWidth, int canvasHeight,

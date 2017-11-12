@@ -15,12 +15,34 @@ LOG = False
 TILE_SIZE = 32
 
 UNIT_RADIUS = 2
-SPACE = 1
+SPACE = 2
 
+class point2d:
+    def __init__(self, x, y):
+        self.x = x
+        self.y = y
 
-POSITIONS = [(34.5, 34.5),  (93.5, 34.5),  (152.5, 34.5),
-             (34.5, 93.5),  (93.5, 93.5),  (152.5, 93.5),
-             (34.5, 152.5), (93.5, 152.5), (152.5, 152.5)]
+    def __str__(self):
+        return 'p2d(' + str(self.x) + ':' + str(self.y) + ')'
+
+    def __eq__(self, other):
+        return ((self.x == other.x)and(self.y == other.y))
+
+    def __gt__(self, other):
+        return math.hypot(self.x, self.y) > math.hypot(other.x, other.y)
+
+    def get_distance_to(self, x, y):
+        return hypot(x - self.x, y - self.y)
+
+    def get_distance_to_unit(self, unit):
+        return self.get_distance_to(unit.x, unit.y)
+
+    def get_distance_to_point(self, point):
+        return self.get_distance_to(point.x, point.y)
+    
+POSITIONS = [point2d(45, 45),  point2d(119, 45),  point2d(193, 45),
+             point2d(45, 119), point2d(119, 119), point2d(193, 119),
+             point2d(45, 193), point2d(119, 193), point2d(193, 193)]
 
 
 class tile2d:
@@ -276,11 +298,26 @@ class MyStrategy:
     def _move(self):
         
         print('_move')
+        self.some_info()
+       
+        
 ##        #TEST
         if self.world.tick_index == 20:
-            self.start_order_begin()
-            #self.spread_square_formation(point2d(152.5, 34.5), 1)
-            #self.spread_square_formation(point2d(93.5, 34.5), 0)
+
+##           self.cover(VehicleType.TANK, VehicleType.FIGHTER)
+##           self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
+            #self.start_order_begin()
+           for p in POSITIONS: 
+               move_dict = self.move_selection_rect(self.start_formation_selection(p)) 
+               self.delayed_moves.append(move_dict)
+                # shift left 27
+               move_dict = self.move_move(27,0, None) 
+               self.delayed_moves.append(move_dict)
+               # scale 
+               move_dict = self.move_scale(p.x,p.y, 1.5) 
+               self.delayed_moves.append(move_dict)
+               
+           
         return
 
     
@@ -299,13 +336,28 @@ class MyStrategy:
             pass
             #ATTACk
             #self.attack()
-            
+
+    def some_info(self):
+        for vt in range(5):
+            vs = self.get_vehicles(Ownership.ALLY, vt)
+            if vs:
+               x = np.mean([v.x for v in vs])
+               y = np.mean([v.y for v in vs])
+               min_a_x = min([v.x for v in vs])
+               min_a_y = min([v.y for v in vs])
+               max_a_x = max([v.x for v in vs])
+               max_a_y = max([v.y for v in vs])
+               print('my {} center = {}'.format(repr_v_type(vt),(x, y)))
+               print('my {} l t  = {}'.format(repr_v_type(vt),(min_a_x, min_a_y)))
+               print('my {} r b  = {}'.format(repr_v_type(vt),(max_a_x, max_a_y)))
+        
     def start_formation_selection(self, center_formation):
-        l = center_formation.x - 25
-        r = center_formation.x + 25
-        t = center_formation.y - 25
-        b = center_formation.y + 25
-        return ltrb_dict(l,t,r,b)#{'left':l,'top':t, 'right':r, 'bottom':b} # refact to ltrb_dict
+        #27+2
+        l = center_formation.x - 29 
+        r = center_formation.x + 29
+        t = center_formation.y - 29
+        b = center_formation.y + 29
+        return ltrb_dict(l,t,r,b)
 
 
     
@@ -329,9 +381,17 @@ class MyStrategy:
         return move_dict    
         #self.delayed_moves.append(move_dict)
     
+    def move_scale(self,x,y,factor):
+        move_dict = {}
+        move_dict['action'] = ActionType.SCALE
+        move_dict['x']      = x
+        move_dict['y']      = y
+        move_dict['factor'] = factor
+        return move_dict
+    
     def start_order_begin(self):
         # ------------1 row -------------
-        START_POINTS_1ROW = [point2d(34.5, 34.5),  point2d(93.5, 34.5),  point2d(152.5, 34.5)]
+        START_POINTS_1ROW = [POSITIONS[0],  POSITIONS[1],  POSITIONS[2]]
         START_POINTS_1ROW.reverse()
         mul_row_shift=2
         for i,p in enumerate(START_POINTS_1ROW):
@@ -339,7 +399,7 @@ class MyStrategy:
             #print('for {} point add {} step'.format(i,add_step))
             self.spread_square_formation(p, mul_gr_shift, mul_row_shift)
         # ------------ 2 row -------------
-        START_POINTS_2ROW = [point2d(34.5, 93.5),  point2d(93.5, 93.5),  point2d(152.5, 93.5)]
+        START_POINTS_2ROW = [POSITIONS[3],  POSITIONS[4],  POSITIONS[5]]
         START_POINTS_2ROW.reverse()
         mul_row_shift=1
         for i,p in enumerate(START_POINTS_2ROW):
@@ -347,7 +407,7 @@ class MyStrategy:
             #print('for {} point add {} step'.format(i,add_step))
             self.spread_square_formation(p, mul_gr_shift, mul_row_shift)
         # ------------ 3 row -------------            
-        START_POINTS_3ROW = [point2d(34.5, 152.5), point2d(93.5, 152.5), point2d(152.5, 152.5)]
+        START_POINTS_3ROW = [POSITIONS[6],  POSITIONS[7],  POSITIONS[8]]
         START_POINTS_3ROW.reverse()
         mul_row_shift=0
         for i,p in enumerate(START_POINTS_3ROW):
@@ -359,28 +419,28 @@ class MyStrategy:
         l = 0
         t = 0
         r = (4*UNIT_RADIUS+4*SPACE)*50
-        b = 59
+        b = 75
         move_dict = self.move_selection_rect(ltrb_dict(l,t,r,b))
         self.delayed_moves.append(move_dict)
         
-        move_dict = self.move_move(0, 45+14, None)
+        move_dict = self.move_move(0, 54+14, None)
         self.delayed_moves.append(move_dict)
 
         # 3 row up
         l = 0
-        t = 127.5
+        t = 160
         r = (4*UNIT_RADIUS+4*SPACE)*50
-        b = 177
+        b = 222
         move_dict = self.move_selection_rect(ltrb_dict(l,t,r,b))
         self.delayed_moves.append(move_dict)
         
-        move_dict = self.move_move(0,-( 45+14), None)
+        move_dict = self.move_move(0,-( 54+14), None)
         self.delayed_moves.append(move_dict)
             
     def spread_square_formation(self, center, mul_gr_shift, mul_row_shift):
-        r_x = center.x+22.5
-        top_y   = center.y - 25 - UNIT_RADIUS
-        bottom_y= center.y + 25 + UNIT_RADIUS 
+        r_x = center.x+27
+        top_y   = center.y - 29 - UNIT_RADIUS
+        bottom_y= center.y + 29 + UNIT_RADIUS 
         for i in range(5):
             #sel col
             l = r_x - (UNIT_RADIUS+SPACE+2*UNIT_RADIUS)- i*(2*SPACE+4*UNIT_RADIUS)
