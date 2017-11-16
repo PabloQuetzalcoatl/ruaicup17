@@ -17,6 +17,29 @@ TILE_SIZE = 32
 UNIT_RADIUS = 2
 SPACE = 2
 
+
+
+def get_intersect(a1, a2, b1, b2):
+    """
+    FOR LINE no SEGMENT (((
+    Returns the point of intersection of the lines passing through a2,a1 and b2,b1.
+    a1: [x, y] a point on the first line
+    a2: [x, y] another point on the first line
+    b1: [x, y] a point on the second line
+    b2: [x, y] another point on the second line
+    """
+    s = np.vstack([a1,a2,b1,b2])        # s for stacked
+    h = np.hstack((s, np.ones((4, 1)))) # h for homogeneous
+    l1 = np.cross(h[0], h[1])           # get first line
+    l2 = np.cross(h[2], h[3])           # get second line
+    x, y, z = np.cross(l1, l2)          # point of intersection
+    if z == 0:                          # lines are parallel
+        return (float('inf'), float('inf'))
+    return (x/z, y/z)
+
+
+
+
 class point2d:
     def __init__(self, x, y):
         self.x = x
@@ -174,7 +197,11 @@ class MyStrategy:
     updateTickByVehicleId = {}
     delayed_moves = deque()
     tick_moves = {}
-
+    # move tick idx
+    cover_2_tick_idx = -1
+    start_ordering_idx = -1
+    start_scale_idx = -1
+    
     def get_vehicles(self, ownership=Ownership.ANY, vehicle_type=None):
         vehicles = self.vehicleById.values()
         if ownership == Ownership.ALLY:
@@ -252,90 +279,62 @@ class MyStrategy:
         print('--------{}------------'.format(ti))
 
         if LOG:
-            f = open('..\\draw.txt', 'w')
-        
-        if LOG:
             self.battle_report()
 
 
         # === INITIALIZATION  ===========
         self.update_state(me, world, game, move)
-
+        
+        # --- moves in personal tick -----------
         if self.tick_moves:
             print(self.tick_moves)
             if ti in self.tick_moves.keys():
                 print('TICK {} MOVE {}'.format(ti, self.tick_moves[ti]))
                 move_dict = self.tick_moves.pop(ti)
                 self.delayed_moves.appendleft(move_dict)
-
+        # --- moves in personal tick -----------
         if self.me.remaining_action_cooldown_ticks > 0:
             return
         if self.execute_delayed_move():
             return
         self._move()
         self.execute_delayed_move()
-        #=====================================
-        if LOG:
-            f.write('setColor 50 50 50')
-            f.write('\n')
-
-            for x in range(len(self.terrain_map)):
-                for y in range(len(self.terrain_map[0])):
-                    color = 'setColor 250 250 250'
-                    terr_type = self.terrain_map[x][y]
-                    if terr_type == 1:
-                        color = 'setColor 250 0 0'
-                    elif terr_type == 2:
-                        color = 'setColor 0 250  0'
-                    f.write(color)
-                    f.write('\n')
-                    c = convert_tile2phys(tile2d(x, y))
-                    f.write('drawCircle ' + str(c.x) + ' ' +
-                            str(c.y) + ' ' + str(int(TILE_SIZE / 2)))
-                    f.write('\n')
-            f.close()
+    
 
     def _move(self):
         
         print('_move')
         self.some_info()
-       
         
-##        #TEST
+      
+        #TEST
         if self.world.tick_index == 20:
+            print('***FIGH GO*****')
+            d=self.cover(VehicleType.TANK, VehicleType.FIGHTER)
+            t=int(d/self.game.fighter_speed)
 
-##           self.cover(VehicleType.TANK, VehicleType.FIGHTER)
-##           self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
-            #self.start_order_begin()
-           for p in POSITIONS: 
-               move_dict = self.move_selection_rect(self.start_formation_selection(p)) 
-               self.delayed_moves.append(move_dict)
-                # shift left 27
-               move_dict = self.move_move(27,0, None) 
-               self.delayed_moves.append(move_dict)
-               # scale 
-               move_dict = self.move_scale(p.x,p.y, 1.5) 
-               self.delayed_moves.append(move_dict)
-               
-           
-        return
+            self.cover_2_tick_idx = self.world.tick_index + t+1
+            
+            print('{}-{}'.format(t,self.cover_2_tick_idx))
+        if self.world.tick_index == self.cover_2_tick_idx:
+            print('***HELI GO*****')
+            d=self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
+            t=int(d/self.game.helicopter_speed)
+            self.start_ordering_idx = self.world.tick_index + t + 1
+        if self.world.tick_index == self.start_ordering_idx:
+            p=POSITIONS[8]
+            move_dict = self.move_selection_rect(self.start_formation_selection(p)) 
+            self.delayed_moves.append(move_dict)
+            # shift left 27
+            move_dict = self.move_move(27,0, None) 
+            self.delayed_moves.append(move_dict)
+            self.start_scale_idx = self.world.tick_index+27+1
+        if self.world.tick_index == self.start_scale_idx:
+            # scale
+            p=POSITIONS[8]
+            move_dict = self.move_scale(p.x+27,p.y, 1.5) 
+            self.delayed_moves.append(move_dict)
 
-    
-        
-        if self.world.tick_index == 0:
-            # cover
-            self.cover(VehicleType.TANK, VehicleType.FIGHTER)
-            self.cover(VehicleType.IFV, VehicleType.HELICOPTER)
-            # formation
-##            move_list = self.info()
-##            self.take_initial_position(move_list)
-            # compact
-            for vt in [0,3,4]:
-              self.compact_square_formation(vt)
-        else:
-            pass
-            #ATTACk
-            #self.attack()
 
     def some_info(self):
         for vt in range(5):
@@ -606,6 +605,7 @@ class MyStrategy:
            at2_y = np.mean([v.y for v in vs])
         target_x = at1_x-at2_x
         target_y = at1_y-at2_y
+        dist = hypot(target_x, target_y)
         #select 2 
         self.delayed_moves.append(dict(
             action=ActionType.CLEAR_AND_SELECT,
@@ -620,7 +620,8 @@ class MyStrategy:
             x=target_x,
             y=target_y,
         ))
-           
+        return dist
+    
     def compact_square_formation(self,vehicle_type):
         # --------- FIGHTER -----------
         vs = self.get_vehicles(Ownership.ALLY, vehicle_type)
@@ -653,13 +654,10 @@ class MyStrategy:
         
 print('Hello codewars v 0.0.6 ( battle order )')
 d={}
-d[1]='one'
-d[5]='five'
-i=5
-if i in d.keys():
-    print(d[i])
+print( get_intersect((0, 1), (0, 2), (1, 10), (1, 9))  )# parallel  lines
+print( get_intersect((0, 1), (0, 2), (1, 10), (2, 10)) )# vertical and horizontal lines
+print( get_intersect((1, 1), (3, 1), (1, 2), (1, 3))  )# another line for fun
 
-print( bool(d))
 # v 0.0.1 ( basics )
 # v 0.0.2 ( get any type vehicles )
 # v 0.0.3 ( add deque )
