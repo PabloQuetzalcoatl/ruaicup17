@@ -312,9 +312,7 @@ class MyStrategy:
             print('***FIGH GO*****')
             d=self.cover(VehicleType.TANK, VehicleType.FIGHTER)
             t=int(d/self.game.fighter_speed)
-
             self.cover_2_tick_idx = self.world.tick_index + t+1
-            
             print('{}-{}'.format(t,self.cover_2_tick_idx))
         if self.world.tick_index == self.cover_2_tick_idx:
             print('***HELI GO*****')
@@ -325,17 +323,38 @@ class MyStrategy:
             p=POSITIONS[8]
             move_dict = self.move_selection_rect(self.start_formation_selection(p)) 
             self.delayed_moves.append(move_dict)
-            # shift left 27
-            move_dict = self.move_move(27,0, None) 
+            # shift left 27 down 27
+            move_dict = self.move_move(27,27, None) 
             self.delayed_moves.append(move_dict)
-            self.start_scale_idx = self.world.tick_index+27+1
+            self.start_scale_idx = self.world.tick_index+27+27+1
+
+            p=POSITIONS[7]
+            move_dict = self.move_selection_rect(self.start_formation_selection(p)) 
+            self.delayed_moves.append(move_dict)
+            # shift left 27 down 27
+            move_dict = self.move_move(0,28, None) 
+            self.delayed_moves.append(move_dict)
+
+            p=POSITIONS[6]
+            move_dict = self.move_selection_rect(self.start_formation_selection(p)) 
+            self.delayed_moves.append(move_dict)
+            # shift left 27 down 27
+            move_dict = self.move_move(0,29, None) 
+            self.delayed_moves.append(move_dict)
+            
         if self.world.tick_index == self.start_scale_idx:
             # scale
             p=POSITIONS[8]
-            move_dict = self.move_scale(p.x+27,p.y, 1.5) 
+            move_dict = self.move_scale(p.x+27,p.y+27, 1.5) 
             self.delayed_moves.append(move_dict)
 
-
+            p=POSITIONS[7]
+            move_dict = self.move_scale(p.x,p.y+28, 1.5) 
+            self.delayed_moves.append(move_dict)
+            p=POSITIONS[6]
+            move_dict = self.move_scale(p.x,p.y+29, 1.5) 
+            self.delayed_moves.append(move_dict)
+            
     def some_info(self):
         for vt in range(5):
             vs = self.get_vehicles(Ownership.ALLY, vt)
